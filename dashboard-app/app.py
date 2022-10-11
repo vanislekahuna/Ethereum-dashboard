@@ -1,3 +1,7 @@
+####################
+### proto-app.py ###
+####################
+
 ### Set up ###
 # Run the following command:
 # `pip install -r utils/requirements-1.txt`
@@ -16,96 +20,48 @@ import plotly.graph_objects as go
 import dash_bootstrap_components as dbc
 import datetime as dt
 from web3 import Web3
-from dash import html, Input, Output, callback, State, dcc, Dash
+from dash import html, Input, Output, callback, State, dcc, Dash, dash_table
 from pprint import pprint
-from forex_python.converter import CurrencyRates
+# from forex_python.converter import CurrencyRates
+
+from ethFunctions import get_eth_web3, block_extracter, graphEther
 
 
-#######################################################
-### REMEMBER NOT TO PUSH THIS CODE ONCE YOU'RE DONE ###
-os.environ['WEB3_INFURA_PROJECT_ID'] = 'ad028bbf80ac4032a2c3e1fb6aa6aaa6'
-### NOTE: Figure out how to hide project id and other api keys
-### in a .env file or the .gitignore document on Github.
-#######################################################
-
-# Constants
-INFURA_PROJ_ID = os.environ['WEB3_INFURA_PROJECT_ID']
-c = CurrencyRates()
-usd_cad_exchange = c.get_rate('USD', 'CAD')
+# c = CurrencyRates()
+# usd_cad_exchange = c.get_rate('USD', 'CAD')
 
 
 # Building our functions:
 ## NOTE: If we have a lot of functions, they should probably go inside separate Python scripts you can call and develop modularly
 
-def get_eth_web3():
-  ethereum_mainnet_endpoint  = f'https://mainnet.infura.io/v3/{INFURA_PROJ_ID}'
-  web3 = Web3(Web3.HTTPProvider(ethereum_mainnet_endpoint))
-  assert web3.isConnected()
+# def get_eth_web3():
+#   ethereum_mainnet_endpoint  = f'https://mainnet.infura.io/v3/{INFURA_PROJ_ID}'
+#   web3 = Web3(Web3.HTTPProvider(ethereum_mainnet_endpoint))
+#   assert web3.isConnected()
 
-  return web3
+#   return web3
 
-web3 = get_eth_web3()
-
-
-def block_extracter(time_period):
-  """
-  This function pulls block data from the Ethereum Blockchain using the time period (in minutes) as the input functions
-  and counts backwards. The output will be a raw dictionary list of block data.
-  """
-  ethBlocks = []
-  latest_block = web3.eth.blockNumber
-  # time_period = int(input('Input time period (min): '))
-  timestamp = int(dt.datetime.timestamp((dt.datetime.now() - dt.timedelta(minutes=time_period))))
-  etherscan_endpoint = f'https://api.etherscan.io/api?module=block&action=getblocknobytime&timestamp={timestamp}&closest=before&apikey=YourApiKeyToken'
-  etherscan_request = requests.request("GET", url=etherscan_endpoint).text
-  etherscan_api_obj = ast.literal_eval(etherscan_request)
-  end = int(etherscan_api_obj['result'])
-  for i in range(0, end):
-    block = web3.eth.getBlock(latest_block - i)
-    ethBlocks.append(block)
-
-  return ethBlocks
+# web3 = get_eth_web3()
 
 
-def graphEther(df, kind: str, dimension1: str, dimension2: str, title: str):
-  """
-  Parameters:
-  -----------
-  df: Dataframe object
-  graph_type: Only graphs available are those in the "plots" dictionary
-  dimension1: X-axis
-  dimension2: Y-axis
-  region: Specified region
-  """
+# def block_extracter(time_period):
+#   """
+#   This function pulls block data from the Ethereum Blockchain using the time period (in minutes) as the input functions
+#   and counts backwards. The output will be a raw dictionary list of block data.
+#   """
+#   ethBlocks = []
+#   latest_block = web3.eth.blockNumber
+#   # time_period = int(input('Input time period (min): '))
+#   timestamp = int(dt.datetime.timestamp((dt.datetime.now() - dt.timedelta(minutes=time_period))))
+#   etherscan_endpoint = f'https://api.etherscan.io/api?module=block&action=getblocknobytime&timestamp={timestamp}&closest=before&apikey=YourApiKeyToken'
+#   etherscan_request = requests.request("GET", url=etherscan_endpoint).text
+#   etherscan_api_obj = ast.literal_eval(etherscan_request)
+#   end = int(etherscan_api_obj['result'])
+#   for i in range(0, end):
+#     block = web3.eth.getBlock(latest_block - i)
+#     ethBlocks.append(block)
 
-  plots = {'box': px.box, 'scatter': px.scatter, 'line': px.line, 'violin': px.violin, 'area': px.area}
-  if title == None:
-    title = f"{dimension2} over {dimension1}"
-  try:
-    # Initialize function:
-    fig = plots[kind](df, 
-                      x=dimension1,
-                      y=dimension2,
-                      )
-    # Add images
-    fig.add_layout_image(
-        dict(       
-            source="https://raw.githubusercontent.com/ethereum/ethereum-org-website/dev/src/assets/ethereum-learn.png",
-            xref="paper", yref="paper",
-            x=0, y=1.75,
-            sizex=2, sizey=2,
-            # sizing="stretch",
-            opacity=0.5, layer="below")
-    )
-
-    fig.update_layout(template='plotly_dark', showlegend=True, title=title)
-
-    return fig
-
-  except KeyError:
-    print("Key not found. Make sure that the 'graph_type' is either a box, scatter, line, area, or violin plot")
-  except ValueError:
-    print("Dimension is not valid. Please check the column names again")
+#   return ethBlocks
 
 
 # ---------------------------------------------------------------------------------------------------------------------------------------------------- #
@@ -134,32 +90,28 @@ app.layout = html.Div([
 
                                 html.H1(
                                   [
-                                    # html.Span(
-                                    # "Ethereum",
-                                    # id="tooltip-target", 
-                                    # style={"textDecoration": "underline", "cursor": "pointer"}
-                                    # ),
+                                    html.Span(
+                                      html.A(
+                                        "Ethereum", 
+                                        href='https://ethereum.org/en/what-is-ethereum/',
+                                      ),
+                                      id="tooltip-target", 
+                                      style={"textDecoration": "underline", "cursor": "pointer"}
+                                    ),
                                     
-                                    html.A("Ethereum", href='https://ethereum.org/en/what-is-ethereum/',),
-
                                     " Blockchain Analytics Dashboard",
 
-                                    html.Abbr(
-                                      "\uFE56", 
-                                      title="What is Ethereum? Ethereum is a technology that's home to digital money, global payments, and applications. The community has built a booming digital economy, bold new ways for creators to earn online, and so much more. It's open to everyone, wherever you are in the world – all you need is the internet."
-                                    ),
 
-                                  ], style=card_txt_style                             
-                                  ),
+                                  ], style=card_txt_style),
 
-                                  # dbc.Tooltip("\
-                                  #   What is Ethereum? \
-                                  #   Ethereum is a technology that's home to digital money, global payments, and applications. \
-                                  #   The community has built a booming digital economy, bold new ways for creators to earn online, and so much more. \
-                                  #   It's open to everyone, wherever you are in the world – all you need is the internet. \
-                                  #   ",
-                                  # target="tooltip-target",
-                                  # style={"text-align": "right"},),
+                                  dbc.Tooltip("\
+                                    What is Ethereum? \
+                                    Ethereum is a technology that's home to digital money, global payments, and applications. \
+                                    The community has built a booming digital economy, bold new ways for creators to earn online, and so much more. \
+                                    It's open to everyone, wherever you are in the world – all you need is the internet. \
+                                    ",
+                                  target="tooltip-target",
+                                  style={"text-align": "right"},),
 
                                   # dcc.Link(
                                   #   href='https://docs.klimadao.finance/references/glossary#tco2',
@@ -221,7 +173,7 @@ app.layout = html.Div([
                                   dcc.Markdown("""
                                     #### Data dictionary for each [Ethereum block](https://ethereum.org/en/developers/docs/blocks/)
 
-                                    Original Features (20):
+                                    Original Features (21):
 
                                     - `baseFeePerGas`: the minimum fee per gas required for a transaction to be included in the block. This metric determines the amount of ETH **burnt** or removed from circulation in the system. This is an important feature because it prevents validators from manipulating the system by including their own transactions for free while raising the base fee for everyone else, for example.
                                     - `difficulty`: The amount of computational resrouces used to validate the transactions on the blockchain and add a new block to the network. 
@@ -247,9 +199,8 @@ app.layout = html.Div([
 
                                     Below is a sample DataFrame:
                                   """),
-                                  # dbc.Table.from_dataframe(df, id='dataframe', striped=True, bordered=True, hover=True)
-                                  ])
-                        ]),
+                                ]),
+                              ])
 ])
 
 
